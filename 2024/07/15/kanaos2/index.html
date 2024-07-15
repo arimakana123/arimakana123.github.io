@@ -1,0 +1,700 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="wang">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="操作系统真相还原（1） – 编写 MBR 主引导记录坦率的讲，我们的操作系统的运行，如同火箭升天一般，是一级一级完成的，操作系统也是这样：一级程序要完成自己任务，结束之后把权力交给下一级继续运行，随着权力的移交，执行的程序越来越复杂，最终运行起整个操作系统。BIOS就是这艘火箭的第一级，我们的故事也从这里开始。 BIOS首先来看这张表：  应该说，这是我们程序编写的参考。这是实模式下 1MB 内存">
+<meta property="og:type" content="article">
+<meta property="og:title" content="操作系统真相还原（1） -- 编写 MBR 主引导记录">
+<meta property="og:url" content="http://example.com/2024/07/15/kanaos2/index.html">
+<meta property="og:site_name" content="Baking Soda">
+<meta property="og:description" content="操作系统真相还原（1） – 编写 MBR 主引导记录坦率的讲，我们的操作系统的运行，如同火箭升天一般，是一级一级完成的，操作系统也是这样：一级程序要完成自己任务，结束之后把权力交给下一级继续运行，随着权力的移交，执行的程序越来越复杂，最终运行起整个操作系统。BIOS就是这艘火箭的第一级，我们的故事也从这里开始。 BIOS首先来看这张表：  应该说，这是我们程序编写的参考。这是实模式下 1MB 内存">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://example.com/img/kanaos2/image.png">
+<meta property="og:image" content="http://example.com/img/kanaos2/image-1.png">
+<meta property="article:published_time" content="2024-07-15T11:59:14.000Z">
+<meta property="article:modified_time" content="2024-07-15T13:06:02.711Z">
+<meta property="article:author" content="John Doe">
+<meta property="article:tag" content="学习记录">
+<meta property="article:tag" content="环境配置">
+<meta property="article:tag" content="操作系统">
+<meta property="article:tag" content="操作系统真相还原">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="http://example.com/img/kanaos2/image.png">
+  
+  
+  
+  <title>操作系统真相还原（1） -- 编写 MBR 主引导记录 - Baking Soda</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.3.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Baking Soda</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="操作系统真相还原（1） -- 编写 MBR 主引导记录"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-07-15 19:59" pubdate>
+          2024年7月15日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.2k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          10 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">操作系统真相还原（1） -- 编写 MBR 主引导记录</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="操作系统真相还原（1）-–-编写-MBR-主引导记录"><a href="#操作系统真相还原（1）-–-编写-MBR-主引导记录" class="headerlink" title="操作系统真相还原（1） – 编写 MBR 主引导记录"></a>操作系统真相还原（1） – 编写 MBR 主引导记录</h1><p>坦率的讲，我们的操作系统的运行，如同火箭升天一般，是一级一级完成的，操作系统也是这样：一级程序要完成自己任务，结束之后把权力交给下一级继续运行，随着权力的移交，执行的程序越来越复杂，最终运行起整个操作系统。BIOS就是这艘火箭的第一级，我们的故事也从这里开始。</p>
+<h2 id="BIOS"><a href="#BIOS" class="headerlink" title="BIOS"></a>BIOS</h2><p>首先来看这张表：</p>
+<p><img src="/../img/kanaos2/image.png" srcset="/img/loading.gif" lazyload alt="alt text"></p>
+<p>应该说，这是我们程序编写的参考。这是实模式下 1MB 内存。实模式内存就是1MB，这1MB究竟怎么分已经规定的清清楚楚。</p>
+<p>我们开机之后，硬件写好的 BIOS 会自动启动，运行硬件检查等等的操作，最后将指令跳转到内存的0x7c00处，开始运行MBR。</p>
+<p>BIOS怎么找到MBR？其实MBR的位置和大小是固定的，就是0盘0道1扇区（也是硬盘的第一扇区）这512字节。BIOS完成自己的任务就会将MBR加载到内存的0x7c00开始执行MBR。</p>
+<h2 id="MBR"><a href="#MBR" class="headerlink" title="MBR"></a>MBR</h2><p>我们的MBR只有短短的512字节，它能完成的任务显然少只有少，其实它主要是把任务顺利的交给下一棒就可以了。</p>
+<p>还是看这个最简单的MBR程序：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-comment">; 死循环</span><br><span class="hljs-keyword">jmp</span> $<br><br><span class="hljs-comment">; 保证刚好512字节，不足的补0</span><br><span class="hljs-built_in">times</span> <span class="hljs-number">510</span> - ($ - $$) <span class="hljs-built_in">db</span> <span class="hljs-number">0</span> <br><br><span class="hljs-comment">; 最后两个字节一定是55 aa，这是约定</span><br><span class="hljs-built_in">db</span> <span class="hljs-number">0x55</span>,<span class="hljs-number">0xaa</span><br></code></pre></td></tr></table></figure>
+
+<p>这个程序什么都没有做，我们需要让它完成一些任务 ——</p>
+<ul>
+<li>1:输出一些信息</li>
+<li>2:找到下一棒并把运行权力交给它</li>
+</ul>
+<h3 id="输出一些信息"><a href="#输出一些信息" class="headerlink" title="输出一些信息"></a>输出一些信息</h3><p>在输出上，我倾向于将它写成类似函数的样子，方便我们以后还可能使用，这两个函数我们都会放在print.asm文件里完成。</p>
+<p>第一，我们先做个清屏函数；</p>
+<p>原理：<br>    0x10中断的0x06功能，上卷全部行。<br>    AH 功能号&#x3D; 0x06，AL &#x3D; 上卷的行数(如果为 0,表示全部)，BH &#x3D; 上卷行颜色属性<br>    (CL,CH) &#x3D; 窗口左上角的(X,Y)位置<br>    (DL,DH) &#x3D; 窗口右下角的(X,Y)位置<br>    无返回值；</p>
+<p>实现：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-comment">; 清屏函数</span><br><span class="hljs-symbol">clear:</span><br>    <span class="hljs-keyword">pusha</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ax</span>,<span class="hljs-number">0x0600</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">bx</span>,<span class="hljs-number">0x0700</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">cx</span>,<span class="hljs-number">0</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x184f</span><br>    <span class="hljs-keyword">int</span> <span class="hljs-number">0x10</span><br><br>    <span class="hljs-keyword">popa</span><br>    <span class="hljs-keyword">ret</span><br></code></pre></td></tr></table></figure>
+
+<p>第二，我们实现输出；</p>
+<p>原理：<br>    向显存中的显示字符显示区域直接输出内容，会直接被显示出来</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-comment">; 打印函数</span><br><span class="hljs-comment">; ax 存储显存的位置</span><br><span class="hljs-comment">; bx 存储打印内容的地址，打印到第一个&#x27;\0&#x27;</span><br><span class="hljs-comment">; cx 存储颜色信息</span><br><span class="hljs-comment">; dx 存储打印的偏离字数</span><br><span class="hljs-symbol">print:</span><br>    <span class="hljs-keyword">pusha</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">gs</span>,<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">si</span>,<span class="hljs-number">0</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ss</span>,<span class="hljs-built_in">si</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_char:</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">al</span>, [<span class="hljs-built_in">ss</span>:<span class="hljs-built_in">bx</span>+<span class="hljs-built_in">si</span>]<br>    <span class="hljs-keyword">cmp</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0</span><br>    <span class="hljs-keyword">je</span> print_end<br>    <span class="hljs-keyword">add</span> <span class="hljs-built_in">si</span>,<span class="hljs-built_in">dx</span><br>    <span class="hljs-keyword">shl</span> <span class="hljs-built_in">si</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">byte</span> [<span class="hljs-built_in">gs</span>:<span class="hljs-built_in">si</span>],<span class="hljs-built_in">al</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">byte</span> [<span class="hljs-built_in">gs</span>:<span class="hljs-built_in">si</span>+<span class="hljs-number">1</span>],<span class="hljs-built_in">cl</span><br>    <span class="hljs-keyword">shr</span> <span class="hljs-built_in">si</span>,<span class="hljs-number">1</span><br>    <span class="hljs-keyword">sub</span> <span class="hljs-built_in">si</span>,<span class="hljs-built_in">dx</span><br>    <span class="hljs-keyword">inc</span> <span class="hljs-built_in">si</span><br>    <span class="hljs-keyword">jmp</span> print_char<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">print_end:</span><br>    <span class="hljs-keyword">popa</span><br>    <span class="hljs-keyword">ret</span><br></code></pre></td></tr></table></figure>
+
+<p>我们只需要在主文件里<code>%include &quot;source/print.asm&quot;</code>，然后调用这两个函数就可以了。这是我们的主文件</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-meta">SECTION</span> MBR vstart=<span class="hljs-number">0x7c00</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">init:</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ax</span>,<span class="hljs-built_in">cs</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ds</span>,<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ss</span>,<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">es</span>,<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">fs</span>,<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">sp</span>,<span class="hljs-number">0x7c00</span><br><br><span class="hljs-keyword">call</span> clear<br><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">ax</span>,<span class="hljs-number">0xb800</span><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">bx</span>,program_begin<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">cl</span>,<span class="hljs-number">0x07</span><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x0</span><br><span class="hljs-keyword">call</span> print<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">bx</span>,mbr_begin<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">80</span><br><span class="hljs-keyword">call</span> print<br><br><span class="hljs-keyword">jmp</span> $<br><br><span class="hljs-meta">%include</span> <span class="hljs-string">&quot;source/print.asm&quot;</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">program_begin:</span><br>    <span class="hljs-built_in">db</span> <span class="hljs-string">&#x27;program begin!&#x27;</span>, <span class="hljs-number">0</span><br><span class="hljs-symbol">mbr_begin:</span><br>    <span class="hljs-built_in">db</span> <span class="hljs-string">&#x27;mbr begin!&#x27;</span>, <span class="hljs-number">0</span><br><br><span class="hljs-built_in">times</span> <span class="hljs-number">510</span> - ($ - $$) <span class="hljs-built_in">db</span> <span class="hljs-number">0</span> <br><span class="hljs-built_in">db</span> <span class="hljs-number">0x55</span>,<span class="hljs-number">0xaa</span><br></code></pre></td></tr></table></figure>
+
+<p>这样boot.asm和print.asm存储在source文件夹中。</p>
+<p>我们可以看一下效果：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs shell">nasm source/boot.asm -o boot.bin<br>dd if=boot.bin of=hd60M.img bs=512 count=1 conv=notrunc<br>bochs -f bochsrc.txt<br></code></pre></td></tr></table></figure>
+
+<p><img src="/../img/kanaos2/image-1.png" srcset="/img/loading.gif" lazyload alt="alt text"></p>
+<h3 id="找到下一棒并把运行权力交给它"><a href="#找到下一棒并把运行权力交给它" class="headerlink" title="找到下一棒并把运行权力交给它"></a>找到下一棒并把运行权力交给它</h3><p>事实上，我们首先要解决的是读硬盘。mbr程序是写在固定地方的，但是接下来的程序并不是。<br>所以我们需要判断接下来的程序在哪里，将其读入内存，再将程序跳转到刚刚读入的新程序，就完成了整个MBR的交接任务。</p>
+<p>我们先用函数编写读磁盘的过程。</p>
+<p>原理：and al,0x0f<br>    读取的扇区数写入端口 0x1f2<br>    LBA 地址存入端口 0x1f3 ~ 0x1f6<br>    向 0x1f6 的Device设置 lba 第 24~27 位，写为 1110<br>    向 0x1f7 端口写入读命令,0x20<br>    向 0x1f7 端口使用读命令，检测硬盘状态，第4位为1表示硬盘控制器已准备好数据传输，第7位为1表示硬盘忙<br>    最后从 0x1f0 端口读数据</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-comment">; 实模式下的读磁盘函数</span><br><span class="hljs-comment">; eax -- 起始扇区 lba 地址</span><br><span class="hljs-comment">; bx  -- 写入的地址</span><br><span class="hljs-comment">; cx  -- 待读入的扇区数</span><br><span class="hljs-symbol">rd_disk_16:</span><br>    <span class="hljs-keyword">pusha</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">esi</span>,<span class="hljs-built_in">eax</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">di</span>,<span class="hljs-built_in">cx</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f2</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">al</span>,<span class="hljs-built_in">cl</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">eax</span>,<span class="hljs-built_in">esi</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f3</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><br>    <span class="hljs-keyword">shr</span> <span class="hljs-built_in">eax</span>,<span class="hljs-number">8</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f4</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><br>    <span class="hljs-keyword">shr</span> <span class="hljs-built_in">eax</span>,<span class="hljs-number">8</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f5</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><br>    <span class="hljs-keyword">shr</span> <span class="hljs-built_in">eax</span>,<span class="hljs-number">8</span><br>    <span class="hljs-keyword">and</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0x0f</span><br>    <span class="hljs-keyword">or</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0xe0</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f6</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0x20</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f7</span><br>    <span class="hljs-keyword">out</span> <span class="hljs-built_in">dx</span>,<span class="hljs-built_in">al</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">rd_disk_16_not_ready:</span><br>    <span class="hljs-keyword">nop</span><br>    <span class="hljs-keyword">in</span> <span class="hljs-built_in">al</span>,<span class="hljs-built_in">dx</span><br>    <span class="hljs-keyword">and</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0x88</span><br>    <span class="hljs-keyword">cmp</span> <span class="hljs-built_in">al</span>,<span class="hljs-number">0x08</span><br>    <span class="hljs-keyword">jnz</span> rd_disk_16_not_ready<br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">ax</span>,<span class="hljs-built_in">di</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">256</span><br>    <span class="hljs-keyword">mul</span> <span class="hljs-built_in">dx</span><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">cx</span>,<span class="hljs-built_in">ax</span><br><br>    <span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">0x1f0</span><br><span class="hljs-symbol"></span><br><span class="hljs-symbol">rd_disk_16_read:</span><br>    <span class="hljs-keyword">in</span> <span class="hljs-built_in">ax</span>,<span class="hljs-built_in">dx</span><br>    <span class="hljs-keyword">mov</span> [<span class="hljs-built_in">bx</span>],<span class="hljs-built_in">ax</span><br>    <span class="hljs-keyword">add</span> <span class="hljs-built_in">bx</span>,<span class="hljs-number">2</span><br>    <span class="hljs-keyword">loop</span> rd_disk_16_read<br>    <br>    <span class="hljs-keyword">popa</span><br>    <span class="hljs-keyword">ret</span><br></code></pre></td></tr></table></figure>
+
+<p>这样主函数加上：</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-keyword">mov</span> <span class="hljs-built_in">eax</span>,LOADER_START_SECTOR<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">bx</span>,LOADER_BASE_ADDR<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">cx</span>,LOADER_SECTOR_NUM<br><br><span class="hljs-keyword">call</span> rd_disk_16<br><br><span class="hljs-keyword">jmp</span> LOADER_BASE_ADDR<br></code></pre></td></tr></table></figure>
+
+<p>加上loader.asm和setting</p>
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><code class="hljs x86asm"><span class="hljs-meta">%include</span> <span class="hljs-string">&quot;source/setting&quot;</span><br><span class="hljs-meta">section</span> loader vstart=LOADER_BASE_ADDR<br><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">ax</span>,<span class="hljs-number">0xb800</span><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">bx</span>,loader_begin<br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">cl</span>,<span class="hljs-number">0xa4</span><br><span class="hljs-keyword">mov</span> <span class="hljs-built_in">dx</span>,<span class="hljs-number">160</span><br><span class="hljs-keyword">call</span> print<br><br><span class="hljs-keyword">jmp</span> $<br><span class="hljs-symbol"></span><br><span class="hljs-symbol">loader_begin:</span><br>    <span class="hljs-built_in">db</span> <span class="hljs-string">&#x27;loader begin!&#x27;</span>, <span class="hljs-number">0</span><br><br><span class="hljs-meta">%include</span> <span class="hljs-string">&quot;source/print.asm&quot;</span><br></code></pre></td></tr></table></figure>
+
+<figure class="highlight x86asm"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs x86asm">LOADER_BASE_ADDR <span class="hljs-built_in">equ</span> <span class="hljs-number">0x900</span><br>LOADER_START_SECTOR <span class="hljs-built_in">equ</span> <span class="hljs-number">0x2</span><br>LOADER_SECTOR_NUM <span class="hljs-built_in">equ</span> <span class="hljs-number">0x1</span><br></code></pre></td></tr></table></figure>
+
+<p>就可以运行了。</p>
+<p>我们的编译脚本也更换一下：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs shell">if nasm source/boot.asm -o boot.bin<br>then<br>    if nasm source/loader.asm -o loader.bin<br>    then<br>        dd if=boot.bin of=hd60M.img bs=512 count=1 conv=notrunc<br>        dd if=loader.bin of=hd60M.img bs=512 count=2 seek=2 conv=notrunc<br>        bochs -f bochsrc.txt<br>    else<br>        echo &#x27;编译失败&#x27;<br>    fi<br>else<br>    echo &#x27;编译失败&#x27;<br>fi<br></code></pre></td></tr></table></figure>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" class="category-chain-item">学习记录</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E5%AD%A6%E4%B9%A0%E8%AE%B0%E5%BD%95/" class="print-no-link">#学习记录</a>
+      
+        <a href="/tags/%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/" class="print-no-link">#环境配置</a>
+      
+        <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/" class="print-no-link">#操作系统</a>
+      
+        <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F%E7%9C%9F%E7%9B%B8%E8%BF%98%E5%8E%9F/" class="print-no-link">#操作系统真相还原</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>操作系统真相还原（1） -- 编写 MBR 主引导记录</div>
+      <div>http://example.com/2024/07/15/kanaos2/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>wang</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年7月15日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/07/15/kanaos1/" title="操作系统真相还原（0） -- 环境配置">
+                        <span class="hidden-mobile">操作系统真相还原（0） -- 环境配置</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
