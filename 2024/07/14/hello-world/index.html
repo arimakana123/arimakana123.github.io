@@ -24,7 +24,7 @@
 <meta property="og:description" content="Hello world这是我们博客的第一篇文章，我们主要是扯一些废话。 这篇文章要回答几个问题； 这个博客要怎么构建？为什么要搞一个博客？我们会写些什么？ 这个博客要怎么构建为了方便我们日后可能的重构，我要大致记录一下我们的构建流程。我们使用fedora来构建这个系统，不得不说，Fedora在开箱即用方面的体验还是很不错的。 123456789101112131415161718Fedora Li">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2024-07-14T15:22:57.000Z">
-<meta property="article:modified_time" content="2024-07-26T13:40:55.930Z">
+<meta property="article:modified_time" content="2024-07-26T13:56:03.069Z">
 <meta property="article:author" content="John Doe">
 <meta property="article:tag" content="杂谈">
 <meta property="article:tag" content="博客">
@@ -248,7 +248,7 @@
       <span class="post-meta mr-2">
         <i class="iconfont icon-chart"></i>
         
-          739 字
+          788 字
         
       </span>
     
@@ -329,7 +329,12 @@
 <p>在使用 <code>sudo hexo g</code> 生成页面后将public同步到github的用户名.github.io即可。</p>
 <p>我们只是简单的讲述了一下流程，详细的配置请参考<a target="_blank" rel="noopener" href="https://hexo.fluid-dev.com/docs/guide/">官方网站</a>。</p>
 <p>接下来是一些辅助的问题。</p>
-<h3 id="如何添加谷歌和百度的搜索？"><a href="#如何添加谷歌和百度的搜索？" class="headerlink" title="如何添加谷歌和百度的搜索？"></a>如何添加谷歌和百度的搜索？</h3><h3 id="如何打开评论？"><a href="#如何打开评论？" class="headerlink" title="如何打开评论？"></a>如何打开评论？</h3><h2 id="为什么要搞一个博客"><a href="#为什么要搞一个博客" class="headerlink" title="为什么要搞一个博客"></a>为什么要搞一个博客</h2><p>我们的主要目标是构建学习经历，我是个有些急躁的人，如果不用些什么手段记录一下我们的学习历程，是很容易犯眼高手低的丑毛病的。</p>
+<h3 id="如何添加谷歌和百度的搜索？"><a href="#如何添加谷歌和百度的搜索？" class="headerlink" title="如何添加谷歌和百度的搜索？"></a>如何添加谷歌和百度的搜索？</h3><h3 id="如何打开评论？"><a href="#如何打开评论？" class="headerlink" title="如何打开评论？"></a>如何打开评论？</h3><p>设置_config.fluid.yml文件</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs yml"><span class="hljs-comment"># 评论插件</span><br><span class="hljs-comment"># Comment plugin</span><br><span class="hljs-attr">comments:</span><br>  <span class="hljs-attr">enable:</span> <span class="hljs-literal">true</span><br>  <span class="hljs-comment"># 指定的插件，需要同时设置对应插件的必要参数</span><br>  <span class="hljs-comment"># The specified plugin needs to set the necessary parameters at the same time</span><br>  <span class="hljs-comment"># Options: utterances | disqus | gitalk | valine | waline | changyan | livere | remark42 | twikoo | cusdis | giscus | discuss</span><br>  <span class="hljs-attr">type:</span> <span class="hljs-string">disqus</span><br></code></pre></td></tr></table></figure>
+
+
+
+<h2 id="为什么要搞一个博客"><a href="#为什么要搞一个博客" class="headerlink" title="为什么要搞一个博客"></a>为什么要搞一个博客</h2><p>我们的主要目标是构建学习经历，我是个有些急躁的人，如果不用些什么手段记录一下我们的学习历程，是很容易犯眼高手低的丑毛病的。</p>
 <p>同时，在学习经历中，会有很多一闪而过的点子，这些点子正是我们“学习–&gt;思考”后的创造，如果没有什么能够详细记录下来就如沙飞逝了。</p>
 <p>除去记录学习经历，我是很推荐构建一个博客来记录自己的很多可以“暴露”的想法的。很多有意思的点子不记录下来真的是浪费，但你让我直接发布到社交媒体上，那是万万不能的……</p>
 <h2 id="我们会写些什么"><a href="#我们会写些什么" class="headerlink" title="我们会写些什么"></a>我们会写些什么</h2><ul>

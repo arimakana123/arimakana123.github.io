@@ -305,6 +305,24 @@
   
     <article id="comments" lazyload>
       
+  <div class="disqus" style="width:100%">
+    <div id="disqus_thread"></div>
+    
+      <script>
+        Fluid.utils.loadComments('#disqus_thread', function() {
+          Fluid.utils.createCssLink('https://lib.baomitu.com/disqusjs/1.3.0/disqusjs.css');
+          Fluid.utils.createScript('https://lib.baomitu.com/disqusjs/1.3.0/disqus.js', function() {
+            new DisqusJS({
+              shortname: 'wang',
+              apikey: 'BMXHmfWlu0nKzWKHTkCxIcB67mQpM7y7WudjTuGhL9k40IAPPfRbWYGwr6rDFq4d'
+            });
+          });
+        });
+      </script>
+    
+    <noscript>Please enable JavaScript to view the comments</noscript>
+  </div>
+
 
     </article>
   
